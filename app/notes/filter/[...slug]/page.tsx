@@ -15,7 +15,7 @@ interface FilterPageProps {
 export async function generateMetadata({
   params,
 }: FilterPageProps): Promise<Metadata> {
-  const tag = params.slug?.[0] || ALL_NOTES;
+  const tag = (await params.slug?.[0]) || ALL_NOTES;
 
   const title = tag === ALL_NOTES ? "All Notes" : `Your notes about ${tag}`;
   const description =
