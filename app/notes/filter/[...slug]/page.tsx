@@ -1,3 +1,4 @@
+import { Metadata } from "next";
 import {
   HydrationBoundary,
   dehydrate,
@@ -8,7 +9,30 @@ import NotesClient from "./Notes.client";
 import { ALL_NOTES } from "@/lib/constants";
 
 interface FilterPageProps {
-  params: Promise<{ slug: string[] }>;
+  params: { slug: string[] };
+}
+
+export async function generateMetadata({
+  params,
+}: FilterPageProps): Promise<Metadata> {
+  const tag = params.slug?.[0] || ALL_NOTES;
+
+  const title = tag === ALL_NOTES ? "All Notes" : `Your notes about ${tag}`;
+  const description =
+    tag === ALL_NOTES
+      ? "Browse all notes."
+      : `Browse notes filtered be the "${tag}."`;
+
+  return {
+    title: title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url: "https://your-vercel-url.vercel.app/",
+      images: ["https://ac.goit.global/fullstack/react/notehub-og-meta.jpg"],
+    },
+  };
 }
 
 export default async function FilterPage({ params }: FilterPageProps) {
