@@ -1,22 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQueryClient, useMutation } from "@tanstack/react-query";
 import { useRouter, usePathname } from "next/navigation";
 import { createNote } from "@/lib/api";
 import { useNoteStore } from "@/lib/store/noteStore";
-import { NoteTag } from "@/types/note";
+import { NewNote } from "@/types/note";
 import css from "./NoteForm.module.css";
 
 interface NoteFormProps {
   onClose?: () => void;
 }
 
-const initialDraft = {
+const initialDraft: NewNote = {
   title: "",
   content: "",
-  tag: "Todo" as NoteTag,
-}; //чи це тут треба?
+  tag: "Todo",
+};
 
 export default function NoteForm({ onClose }: NoteFormProps) {
   const router = useRouter();
@@ -25,16 +25,26 @@ export default function NoteForm({ onClose }: NoteFormProps) {
 
   const { draft, setDraft, clearDraft } = useNoteStore();
   const [form, setForm] = useState(initialDraft);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     if (pathname === "/notes/action/create") {
-      if (draft) {
-        setForm(draft);
-      } else {
-        setForm(initialDraft);
-      }
+      setForm(draft ?? initialDraft);
     }
   }, [pathname, draft]);
+
+  const { mutate, isPending, isError } = useMutation({
+    mutationFn: createNote,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["notes"] });
+      clearDraft();
+      router.back();
+      if (onClose) onClose();
+    },
+    onError: () => {
+      setError("Failed to create note. Please try again");
+    },
+  });
 
   const handleChange = (
     e: React.ChangeEvent<
@@ -45,27 +55,18 @@ export default function NoteForm({ onClose }: NoteFormProps) {
     const updated = { ...form, [name]: value };
     setForm(updated);
     setDraft(updated);
-    console.log("📝 Draft updated:", updated);
   };
 
-  async function handleCreateNote(formData: FormData) {
-    const title = formData.get("title") as string;
-    const content = formData.get("content") as string;
-    const tag = formData.get("tag") as NoteTag;
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
 
-    if (!title.trim()) {
-      alert("Title is required");
+    if (!form.title.trim()) {
+      setError("Title is required");
       return;
     }
 
-    await createNote({ title, content, tag });
-
-    queryClient.invalidateQueries({ queryKey: ["notes"] });
-    clearDraft();
-    router.back();
-
-    if (onClose) onClose();
-  }
+    mutate(form);
+  };
 
   const handleCancel = () => {
     router.back();
@@ -73,7 +74,7 @@ export default function NoteForm({ onClose }: NoteFormProps) {
   };
 
   return (
-    <form action={handleCreateNote} className={css.form}>
+    <form onSubmit={handleSubmit} className={css.form}>
       <div className={css.formGroup}>
         <label htmlFor="title">Title</label>
         <input
@@ -86,6 +87,7 @@ export default function NoteForm({ onClose }: NoteFormProps) {
           maxLength={50}
           value={form.title}
           onChange={handleChange}
+          disabled={isPending}
         />
       </div>
 
@@ -98,6 +100,7 @@ export default function NoteForm({ onClose }: NoteFormProps) {
           className={css.textarea}
           value={form.content}
           onChange={handleChange}
+          disabled={isPending}
         />
       </div>
 
@@ -110,6 +113,7 @@ export default function NoteForm({ onClose }: NoteFormProps) {
           className={css.select}
           value={form.tag}
           onChange={handleChange}
+          disabled={isPending}
         >
           <option value="Todo">Todo</option>
           <option value="Work">Work</option>
@@ -120,19 +124,22 @@ export default function NoteForm({ onClose }: NoteFormProps) {
       </div>
 
       <div className={css.actions}>
-        {onClose && (
-          <button
-            type="button"
-            className={css.cancelButton}
-            onClick={handleCancel}
-          >
-            Cancel
-          </button>
-        )}
-        <button type="submit" className={css.submitButton}>
-          Create note
+        {error && <p className={css.error}>{error}</p>}
+        <button
+          type="button"
+          className={css.cancelButton}
+          onClick={handleCancel}
+          disabled={isPending}
+        >
+          Cancel
+        </button>
+        <button type="submit" className={css.submitButton} disabled={isPending}>
+          {isPending ? "Creating..." : "Create note"}
         </button>
       </div>
+      {isError && (
+        <p className={css.error}>Something went wrong. Please try again.</p>
+      )}
     </form>
   );
 }

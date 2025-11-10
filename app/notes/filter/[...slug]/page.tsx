@@ -9,13 +9,14 @@ import NotesClient from "./Notes.client";
 import { ALL_NOTES } from "@/lib/constants";
 
 interface FilterPageProps {
-  params: { slug: string[] };
+  params: Promise<{ slug: string[] }>;
 }
 
 export async function generateMetadata({
   params,
 }: FilterPageProps): Promise<Metadata> {
-  const tag = (await params.slug?.[0]) || ALL_NOTES;
+  const { slug } = await params;
+  const tag = slug?.[0] || ALL_NOTES;
 
   const title = tag === ALL_NOTES ? "All Notes" : `Your notes about ${tag}`;
   const description =
@@ -29,7 +30,7 @@ export async function generateMetadata({
     openGraph: {
       title,
       description,
-      url: "https://your-vercel-url.vercel.app/",
+      url: `https://08-zustand-eosin-kappa.vercel.app/notes/filter/${tag}`,
       images: ["https://ac.goit.global/fullstack/react/notehub-og-meta.jpg"],
     },
   };

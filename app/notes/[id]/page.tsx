@@ -8,13 +8,13 @@ import NoteDetailsPageClient from "./NoteDetails.client";
 import { fetchNoteById } from "@/lib/api";
 
 interface NoteDetailsPageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 export async function generateMetadata({
   params,
 }: NoteDetailsPageProps): Promise<Metadata> {
-  const { id } = params;
+  const { id } = await params;
 
   const note = await fetchNoteById(id);
 
@@ -29,7 +29,7 @@ export async function generateMetadata({
     openGraph: {
       title,
       description,
-      url: "https://your-vercel-url.vercel.app/",
+      url: `https://08-zustand-eosin-kappa.vercel.app/notes/${id}`,
       images: ["https://ac.goit.global/fullstack/react/notehub-og-meta.jpg"],
     },
   };
